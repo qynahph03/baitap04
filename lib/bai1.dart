@@ -1,49 +1,26 @@
 import 'dart:async';
-import 'dart:io';
-
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(
     MaterialApp(
-      title: 'Reading and Writing Files',
+      title: 'bai1',
       home: FlutterDemo(storage: CounterStorage()),
     ),
   );
 }
 
 class CounterStorage {
-  Future<String> get _localPath async {
-    final directory = await getApplicationDocumentsDirectory();
-
-    return directory.path;
-  }
-
-  Future<File> get _localFile async {
-    final path = await _localPath;
-    return File('$path/counter.txt');
-  }
-
   Future<int> readCounter() async {
-    try {
-      final file = await _localFile;
-
-      // Read the file
-      final contents = await file.readAsString();
-
-      return int.parse(contents);
-    } catch (e) {
-      // If encountering an error, return 0
-      return 0;
-    }
+    // Read the counter from local storage
+    final counter = html.window.localStorage['counter'];
+    return counter != null ? int.parse(counter) : 0;
   }
 
-  Future<File> writeCounter(int counter) async {
-    final file = await _localFile;
-
-    // Write the file
-    return file.writeAsString('$counter');
+  Future<void> writeCounter(int counter) async {
+    // Write the counter to local storage
+    html.window.localStorage['counter'] = counter.toString();
   }
 }
 
@@ -69,13 +46,25 @@ class _FlutterDemoState extends State<FlutterDemo> {
     });
   }
 
-  Future<File> _incrementCounter() {
+  Future<void> _incrementCounter() async {
     setState(() {
       _counter++;
     });
 
-    // Write the variable as a string to the file.
-    return widget.storage.writeCounter(_counter);
+    // Write the variable as a string to local storage.
+    await widget.storage.writeCounter(_counter);
+
+    // Create a text file with the counter value
+    final blob = html.Blob(['Counter value: $_counter'], 'text/plain');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+
+    // Create an anchor element and trigger a download
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', 'counter.txt')
+      ..click();
+
+    // Clean up the URL object
+    html.Url.revokeObjectUrl(url);
   }
 
   @override
